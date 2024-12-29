@@ -40,6 +40,10 @@ def get_and_show_llm_response(prompt: str, key: str, step_name: str, editable: b
             st.text(result)
     return result or ""
 
+st.header("Configuration")
+
+is_song = st.checkbox("Is song translation?", value=True, help="If checked, the process will include considerations of singability and poetic language.")
+
 lang = st.text_input("Target Language", "Spanish")
 
 st.header("Phase 1: Source Text Input and Analysis")
@@ -66,10 +70,15 @@ def extract_text_inside_tags(text: str, tag: str) -> str:
         return text
     return text[start + len(start_tag):end].strip()
 
+if is_song:
+    context = f"""For context, we are translating a worship song from English to {lang}, aiming for theological accuracy, simple and clear language, singability to the original tune, and cultural sensitivity.
 
-context = f"""For context, we are translating a worship song from English to {lang}, aiming for theological accuracy, simple and clear language, singability to the original tune, and cultural sensitivity.
+This step is one part of a multi-step translation process. Do only what is asked in each step.
+"""
+else:
+    context = f"""For context, we are translating a text from English to {lang}, aiming for accuracy, clarity, and cultural sensitivity.
 
-This step is one part of a multi-step process to translate the song. Do only what is asked in each step.
+This step is one part of a multi-step translation process. Do only what is asked in each step.
 """
 
 analysis_prompt = f"""{context}
@@ -80,17 +89,22 @@ Please provide a detailed analysis of the source text to help guide the translat
 
 Provide a detailed analysis of:
 1. Theological concepts and terminology, including any specific references to scripture or doctrine. For each concept or reference, describe it in English and {lang}, including a complete quote in {lang} if applicable.
-2. Poetic devices (rhyme scheme, meter, alliteration)
-3. Cultural references
-4. Key metaphors and imagery
-5. Potential translation challenges
+2. Cultural references
+3. Key metaphors and imagery
+4. Potential translation challenges
 
-Use bullet points to organize your analysis.
+Use bullet points to organize your analysis. Place the results of your analysis inside <analysis> tags.
+"""
+
+if is_song:
+    analysis_prompt += """
+Since this is a song, also analyze:
+
+5. Poetic devices (rhyme scheme, meter, alliteration)
 
 Also, for each line, show the stressed and unstressed syllables. For example, "a-MA-zing GRACE, how SWEET the SOUND"; "He who is MIGHTy has DONE a great THING".
-
-Place the results of your analysis inside <analysis> tags.
 """
+
 analysis = get_and_show_llm_response(analysis_prompt, "source_analysis", "Source Analysis")
 
 st.header("Phase 2: Literal Translation")
@@ -99,13 +113,13 @@ st.subheader(f"{lang} Translation")
 
 literal_translation_prompt = f"""{context}
 
-Provide a literal, word-for-word translation of the following lyrics into {lang}:
+Provide a literal, word-for-word translation of the following text into {lang}:
 
 {source_text}
 
 Include alternate translations for key terms and note any challenging passages.
 
-If a stanza has a heading (like Chorus 2 or Bridge), include it in the output *without translation*. Likewise, if a line is blank, include a blank line in the output.
+{"If a stanza has a heading (like Chorus 2 or Bridge), include it in the output *without translation*" if is_song else ""}. If a line is blank, include a blank line in the output. If a line has -- marks, include them in the output.
 
 Place your translation inside <literal_translation> tags.
 """
