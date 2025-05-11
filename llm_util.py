@@ -41,7 +41,10 @@ def get_and_show_llm_response(prompt: str, key: str, step_name: str, editable: b
         with container, st.container():
             # We need another container because st.empty() only allows one element
             if editable and st.checkbox(f"Edit {step_name}", key=key + "_edit"):
-                result = st.text_area(step_name, result, height=200, key=key)
+                result = st.text_area(step_name, result, height=200)
+                if result != st.session_state.get(key, None):
+                    # Force an update
+                    st.session_state[key] = result
             else:
                 st.markdown(result)
     return result or ""
